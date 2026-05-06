@@ -3,6 +3,7 @@
 
 const API_URL = 'https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json';
 const KNICKS_TEAM_ID = 1610612752; // NBA team ID for New York Knicks
+const REQUEST_TIMEOUT_MS = 10000; // 10 second timeout for API requests
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', init);
@@ -37,36 +38,51 @@ async function init() {
 /**
  * Fetch games from the NBA.com CDN API
  * Returns recent games for the New York Knicks
+ * AC-6: Implements timeout handling for resilient error handling
  */
 async function fetchGames() {
-    const response = await fetch(API_URL, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json'
-        }
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-    if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    // Extract games from the schedule
-    const gameDates = data.leagueSchedule?.gameDates || [];
-    const allGames = [];
-
-    gameDates.forEach(gameDate => {
-        const games = gameDate.games || [];
-        games.forEach(game => {
-            // Only include games involving the Knicks
-            if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
-                game.awayTeam?.teamId == KNICKS_TEAM_ID) {
-                allGames.push(game);
-            }
+    try {
+        const response = await fetch(API_URL, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            signal: controller.signal
         });
-    });
 
-    return allGames;
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // Extract games from the schedule
+        const gameDates = data.leagueSchedule?.gameDates || [];
+        const allGames = [];
+
+        gameDates.forEach(gameDate => {
+            const games = gameDate.games || [];
+            games.forEach(game => {
+                // Only include games involving the Knicks
+                if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
+                    game.awayTeam?.teamId == KNICKS_TEAM_ID) {
+                    allGames.push(game);
+                }
+            });
+        });
+
+        return allGames;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out. Please try again later.');
+        }
+        throw error;
+    }
 }
 
 /**
