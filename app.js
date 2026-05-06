@@ -45,11 +45,8 @@ async function init() {
         renderGames(container, finalGames);
     } catch (error) {
         console.error('Error loading games:', error);
-        // AC-1: Fallback to mock data instead of showing error
-        console.log('Using fallback mock data...');
-        const mockGames = getMockKnicksGames();
-        const finalGames = filterFinalGames(mockGames);
-        renderGames(container, finalGames);
+        // AC-4: Show error with retry button
+        showErrorWithRetry(container);
     }
 }
 
@@ -372,6 +369,21 @@ function showLoading(container) {
  */
 function showMessage(container, message, type) {
     container.innerHTML = `<div class="message ${type}">${message}</div>`;
+}
+
+/**
+ * Show error state with retry button
+ * AC-4: Displays error message with option to retry loading
+ */
+function showErrorWithRetry(container) {
+    container.innerHTML = `
+        <div class="error-state">
+            <div class="error-state-icon">⚠️</div>
+            <div class="error-state-title">加载失败</div>
+            <div class="error-state-message">网络异常或服务器错误，无法获取比赛数据</div>
+            <button class="retry-button" onclick="init()">重新加载</button>
+        </div>
+    `;
 }
 
 // Export for testing (if needed)

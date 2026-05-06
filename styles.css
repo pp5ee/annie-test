@@ -145,6 +145,52 @@ body {
     line-height: 1.5;
 }
 
+/* Error State - AC-4 */
+.error-state {
+    padding: var(--spacing-xl) var(--spacing-lg);
+    text-align: center;
+    background-color: #fdf2f2;
+    border-radius: var(--border-radius);
+    border: 2px dashed #e74c3c;
+}
+
+.error-state-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+    opacity: 0.7;
+}
+
+.error-state-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-xs);
+}
+
+.error-state-message {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Retry Button */
+.retry-button {
+    background-color: var(--knicks-blue);
+    color: var(--color-white);
+    padding: var(--spacing-xs) var(--spacing-md);
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.retry-button:hover {
+    background-color: #005a9e;
+}
+
 /* Game Card (AC-3: Enhanced with win/loss indicator and full game details) */
 .game-card {
     background-color: var(--color-white);
