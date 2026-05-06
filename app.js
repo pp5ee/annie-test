@@ -1,8 +1,8 @@
 // Knicks Scores Application
-// AC-2: Fetch game data from API and filter completed games
+// AC-2: Fetch game data from NBA.com CDN API and filter completed games
 
-const API_BASE_URL = 'https://www.balldontlie.io/api/v1';
-const KNICKS_TEAM_ID = 20; // BallDontLie team ID for New York Knicks
+const API_URL = 'https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json';
+const KNICKS_TEAM_ID = 1610612752; // NBA team ID for New York Knicks
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', init);
@@ -35,13 +35,11 @@ async function init() {
 }
 
 /**
- * Fetch games from the BallDontLie API
+ * Fetch games from the NBA.com CDN API
  * Returns recent games for the New York Knicks
  */
 async function fetchGames() {
-    const url = `${API_BASE_URL}/games?team_ids[]=${KNICKS_TEAM_ID}&per_page=25`;
-
-    const response = await fetch(url, {
+    const response = await fetch(API_URL, {
         method: 'GET',
         headers: {
             'Accept': 'application/json'
@@ -53,7 +51,22 @@ async function fetchGames() {
     }
 
     const data = await response.json();
-    return data.data || [];
+    // Extract games from the schedule
+    const gameDates = data.leagueSchedule?.gameDates || [];
+    const allGames = [];
+
+    gameDates.forEach(gameDate => {
+        const games = gameDate.games || [];
+        games.forEach(game => {
+            // Only include games involving the Knicks
+            if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
+                game.awayTeam?.teamId == KNICKS_TEAM_ID) {
+                allGames.push(game);
+            }
+        });
+    });
+
+    return allGames;
 }
 
 /**
@@ -67,28 +80,27 @@ function filterFinalGames(games) {
 
     return games
         .filter(game => {
-            // Check for "Final" status or completed game indicators
-            const status = game.status?.toLowerCase() || '';
-            const isFinal = status.includes('final');
-            const isCompleted = game.time === '' || game.time === null;
-            const hasScore = game.home_team_score !== null &&
-                           game.home_team_score !== undefined &&
-                           game.visitor_team_score !== null &&
-                           game.visitor_team_score !== undefined;
+            // Check for "Final" status
+            const status = game.gameStatusText || '';
+            const isFinal = status.toLowerCase().includes('final');
 
-            return isFinal || (isCompleted && hasScore);
+            // Game status code: 3 = Final
+            const statusCode = game.gameStatus;
+            const isFinalCode = statusCode === 3;
+
+            return isFinal || isFinalCode;
         })
         .sort((a, b) => {
-            // Sort by date descending (most recent first)
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
+            // Sort by game date descending (most recent first)
+            const dateA = new Date(a.gameDateEst || a.gameDateUTC);
+            const dateB = new Date(b.gameDateEst || b.gameDateUTC);
             return dateB - dateA;
         });
 }
 
 /**
  * Render games to the container
- * Placeholder implementation for AC-3
+ * Basic implementation for AC-2, enhanced in AC-3
  */
 function renderGames(container, games) {
     container.innerHTML = '';
@@ -107,15 +119,24 @@ function createGameElement(game) {
     const div = document.createElement('div');
     div.className = 'game-card';
 
-    const isKnicksHome = game.home_team?.id === KNICKS_TEAM_ID;
-    const opponent = isKnicksHome ? game.visitor_team : game.home_team;
+    // Determine if Knicks are home or away
+    const isKnicksHome = game.homeTeam?.teamId == KNICKS_TEAM_ID;
+    const opponent = isKnicksHome ? game.awayTeam : game.homeTeam;
+
+    // Get scores
+    const knicksScore = isKnicksHome ? game.homeTeam?.score : game.awayTeam?.score;
+    const opponentScore = isKnicksHome ? game.awayTeam?.score : game.homeTeam?.score;
+
+    // Format date
+    const gameDate = new Date(game.gameDateEst || game.gameDateUTC);
+    const formattedDate = gameDate.toLocaleDateString();
 
     div.innerHTML = `
         <div class="game-info">
-            <span class="opponent-name">${opponent?.full_name || 'Unknown'}</span>
-            <span class="game-date">${new Date(game.date).toLocaleDateString()}</span>
+            <span class="opponent-name">${opponent?.teamName || opponent?.teamTricode || 'Unknown'}</span>
+            <span class="game-date">${formattedDate}</span>
             <span class="home-away">${isKnicksHome ? 'Home' : 'Away'}</span>
-            <span class="score">${game.home_team_score} - ${game.visitor_team_score}</span>
+            <span class="score">${knicksScore} - ${opponentScore}</span>
         </div>
     `;
 
