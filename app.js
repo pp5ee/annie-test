@@ -27,8 +27,16 @@ async function init() {
 
     showLoading(container);
 
+    // AC-5: Enforce 3-second total load time budget using Promise.race
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Load timeout')), MAX_TOTAL_LOAD_TIME_MS);
+    });
+
     try {
-        const games = await fetchGamesWithFallback();
+        const games = await Promise.race([
+            fetchGamesWithFallback(),
+            timeoutPromise
+        ]);
         const finalGames = filterFinalGames(games);
 
         if (finalGames.length === 0) {
