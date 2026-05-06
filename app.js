@@ -2,6 +2,7 @@
 // AC-2: Fetch game data from NBA.com CDN API and filter completed games
 
 const API_URL = 'https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json';
+const CORS_PROXY_URL = 'https://api.allorigins.win/get?url=' + encodeURIComponent(API_URL);
 const KNICKS_TEAM_ID = 1610612752; // NBA team ID for New York Knicks
 const REQUEST_TIMEOUT_MS = 10000; // 10 second timeout for API requests
 
@@ -20,7 +21,7 @@ async function init() {
     showLoading(container);
 
     try {
-        const games = await fetchGames();
+        const games = await fetchGamesWithFallback();
         const finalGames = filterFinalGames(games);
 
         if (finalGames.length === 0) {
@@ -36,11 +37,24 @@ async function init() {
 }
 
 /**
- * Fetch games from the NBA.com CDN API
- * Returns recent games for the New York Knicks
- * AC-6: Implements timeout handling for resilient error handling
+ * Fetch games with CORS fallback using allorigins proxy
+ * AC-1: Handles CORS restrictions by using a proxy when direct fetch fails
  */
-async function fetchGames() {
+async function fetchGamesWithFallback() {
+    try {
+        // Try direct fetch first
+        return await fetchGamesDirect();
+    } catch (error) {
+        console.log('Direct fetch failed, trying CORS proxy...');
+        // If direct fails (likely CORS), use proxy
+        return await fetchGamesViaProxy();
+    }
+}
+
+/**
+ * Direct API fetch from NBA.com CDN
+ */
+async function fetchGamesDirect() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -60,22 +74,36 @@ async function fetchGames() {
         }
 
         const data = await response.json();
-        // Extract games from the schedule
-        const gameDates = data.leagueSchedule?.gameDates || [];
-        const allGames = [];
+        return extractKnicksGames(data);
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+    }
+}
 
-        gameDates.forEach(gameDate => {
-            const games = gameDate.games || [];
-            games.forEach(game => {
-                // Only include games involving the Knicks
-                if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
-                    game.awayTeam?.teamId == KNICKS_TEAM_ID) {
-                    allGames.push(game);
-                }
-            });
+/**
+ * Fetch via CORS proxy (allorigins.win)
+ */
+async function fetchGamesViaProxy() {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(CORS_PROXY_URL, {
+            method: 'GET',
+            signal: controller.signal
         });
 
-        return allGames;
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Proxy API error: ${response.status}`);
+        }
+
+        const proxyData = await response.json();
+        // allorigins returns data in 'contents' field as a string
+        const data = JSON.parse(proxyData.contents);
+        return extractKnicksGames(data);
     } catch (error) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
@@ -83,6 +111,27 @@ async function fetchGames() {
         }
         throw error;
     }
+}
+
+/**
+ * Extract Knicks games from NBA schedule data
+ */
+function extractKnicksGames(data) {
+    const gameDates = data.leagueSchedule?.gameDates || [];
+    const allGames = [];
+
+    gameDates.forEach(gameDate => {
+        const games = gameDate.games || [];
+        games.forEach(game => {
+            // Only include games involving the Knicks
+            if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
+                game.awayTeam?.teamId == KNICKS_TEAM_ID) {
+                allGames.push(game);
+            }
+        });
+    });
+
+    return allGames;
 }
 
 /**

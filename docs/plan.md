@@ -1,35 +1,39 @@
 ## Goal
-Build a responsive, single-page website using vanilla HTML/CSS/JavaScript that fetches and displays recent final scores for New York Knicks games from a third-party sports API.
+修复 "Recent Final Scores" API 加载失败问题，确保页面能正常显示最近决赛分数数据并满足功能需求。
 
 ## Context
-This is a greenfield frontend project with no existing codebase or workspace files. The site targets mobile and desktop users seeking quick access to completed Knicks game results without live updates. Because the solution must remain a static site (suitable for GitHub Pages, Netlify, or similar) without a backend server, API selection is constrained to CORS-friendly endpoints or public APIs that don't require secret keys in client-side code.
+当前项目中的 "Recent Final Scores" 功能页面出现加载错误，提示 "Unable to load scores. Please try again later."。这通常表示前端无法成功获取后端 API 数据，可能涉及网络请求失败、后端服务异常、数据格式错误或前端渲染逻辑缺陷。
 
 ## Acceptance Criteria
-- AC-1: The homepage displays clear "New York Knicks" branding with team-inspired visual design (blue/orange color scheme).
-- AC-2: On load, the application fetches game data from a sports API and filters to display only completed games with final scores.
-- AC-3: Each game entry displays: opponent team name, game date (localized), home/away indicator, Knicks final score, opponent final score, and a win/loss indicator.
-- AC-4: The layout adapts responsively to mobile (< 768px) and desktop viewports without horizontal scrolling or layout breakage.
-- AC-5: A clear section heading "Recent Final Scores" (or equivalent) appears above the results list.
-- AC-6: If the API request fails, returns empty data, or times out, the UI displays a user-friendly error message (e.g., "Unable to load scores. Please try again later.") rather than breaking or showing blank space.
-- AC-7: The site loads without JavaScript console errors in modern browsers (Chrome, Firefox, Safari, Edge).
-- AC-8: Games are presented in a card or table format with readable typography and adequate color contrast.
-- AC-9: Data is filtered to exclude scheduled, live, or postponed games; only games with "Final" or equivalent status appear.
+- AC-1: 页面加载时不再显示 "Unable to load scores" 错误提示
+- AC-2: 成功调用 API 并正确渲染最近决赛分数列表（包含分数、队伍/选手名称、时间等关键字段）
+- AC-3: 当 API 返回空数据时，显示友好的空状态提示（如 "暂无数据"）而非错误信息
+- AC-4: 网络异常或服务器错误时，保留错误提示但提供重试按钮
+- AC-5: 响应时间在 3 秒内完成加载（正常网络环境下）
+- AC-6: 移动端和桌面端均能正常显示数据
 
 ## Implementation Notes
-- **API Selection**: Prioritize free, CORS-enabled APIs (e.g., ESPN API endpoints, BallDontLie, or API-Sports) that don't require server-side proxies. If API keys are unavoidable, document that a backend proxy is required for production to avoid exposing keys in client-side code.
-- **Architecture**: Keep all logic in vanilla JS (ES6+) with modular functions: `fetchGames()`, `filterFinalGames()`, `renderGames()`. Isolate API response mapping in a dedicated adapter function to ease future provider swaps.
-- **Data Filtering**: Implement client-side filtering to check `game.status` or equivalent fields for "Final" or "Completed" states, and exclude games where `is_live` or similar is true.
-- **Styling**: Use CSS Grid or Flexbox for responsive layouts. Implement Knicks color palette: #006BB6 (blue), #F58426 (orange), with white/gray backgrounds for readability. Avoid using official copyrighted logos unless explicitly permitted.
-- **Error Handling**: Wrap fetch calls in try/catch blocks. Implement loading states (skeleton screens or spinner) and empty states.
-- **Sorting**: Sort results chronologically with most recent final game first (descending date).
-- **Performance**: Respect API rate limits (typically 10-100 requests/day for free tiers); consider implementing basic client-side caching using `localStorage` with a timestamp to avoid redundant calls during a single session.
+1. **错误排查优先级**:
+   - 检查浏览器 Network 面板确认 API 请求状态码 (4xx/5xx/timeout)
+   - 验证 API 端点 URL 是否正确（环境变量配置、域名变更）
+   - 检查后端日志定位具体错误（数据库连接、查询语法、权限验证）
+
+2. **前端修复要点**:
+   - 添加详细的错误边界处理，区分网络错误、服务器错误、数据格式错误
+   - 实现请求超时机制（建议 10-15 秒）
+   - 添加加载状态管理，避免重复请求
+
+3. **数据验证**:
+   - 确保 API 返回的数据结构与前端 TypeScript 接口/PropTypes 定义一致
+   - 添加空值检查（optional chaining）防止 undefined 导致渲染崩溃
+
+4. **测试策略**:
+   - 使用 Mock 数据测试正常渲染流程
+   - 模拟网络断线测试错误处理
+   - 测试大数据量分页/滚动加载性能
 
 ## Out of Scope
-- Real-time live score updates or WebSocket connections.
-- Historical archives beyond the API-provided recent window (e.g., past seasons).
-- User authentication, accounts, or personalization features.
-- E-commerce functionality (ticket sales, merchandise).
-- Player statistics, team standings, injury reports, or news articles.
-- Administrative interfaces for content management.
-- Backend server, database, or API proxy implementation (unless required for API key security).
-- Accessibility compliance auditing (though semantic HTML is encouraged).
+- 新增业务功能（如分数筛选、排序、导出等）
+- UI/UX  redesign（仅修复现有功能，不涉及视觉优化）
+- 后端业务逻辑重构（仅修复导致 500 错误的 bug，不优化算法）
+- 性能优化超出基本可用性范围（如缓存策略、CDN 加速）
