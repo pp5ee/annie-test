@@ -1,0 +1,16 @@
+# Clack Harness project
+.humanize/
+.claude/
+.codex/
+.gemini/
+.cursor/
+.turbo/
+.next/
+
+# Web project
+node_modules/
+.DS_Store
+*.log
+.env
+.cache/
+dist/
