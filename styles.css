@@ -272,7 +272,7 @@ body {
     font-size: 0.875rem;
 }
 
-/* Responsive */
+/* Responsive - Mobile First */
 @media (max-width: 767px) {
     .site-header {
         padding: var(--spacing-lg) 0;
@@ -293,10 +293,51 @@ body {
     .section-title {
         font-size: 1.25rem;
     }
+
+    /* Mobile game card adjustments */
+    .game-card {
+        padding: var(--spacing-sm);
+    }
+
+    .game-card-header {
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+
+    .game-date {
+        font-size: 0.8125rem;
+        order: 3;
+        width: 100%;
+        text-align: left;
+        margin-top: var(--spacing-xs);
+    }
+
+    .team-name {
+        font-size: 0.9375rem;
+        max-width: 70%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .team-score {
+        font-size: 1.125rem;
+    }
+
+    .games-container {
+        gap: var(--spacing-sm);
+    }
 }
 
 @media (min-width: 768px) {
     .games-container {
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    }
+}
+
+/* Large screens */
+@media (min-width: 1200px) {
+    .games-container {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
