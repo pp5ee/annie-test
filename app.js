@@ -112,8 +112,8 @@ function renderGames(container, games) {
 }
 
 /**
- * Create a game card element
- * Basic implementation - will be enhanced in AC-3
+ * Create a game card element with full game details
+ * AC-3: Displays opponent, date, home/away, scores, and win/loss indicator
  */
 function createGameElement(game) {
     const div = document.createElement('div');
@@ -124,19 +124,38 @@ function createGameElement(game) {
     const opponent = isKnicksHome ? game.awayTeam : game.homeTeam;
 
     // Get scores
-    const knicksScore = isKnicksHome ? game.homeTeam?.score : game.awayTeam?.score;
-    const opponentScore = isKnicksHome ? game.awayTeam?.score : game.homeTeam?.score;
+    const knicksScore = parseInt(isKnicksHome ? game.homeTeam?.score : game.awayTeam?.score, 10) || 0;
+    const opponentScore = parseInt(isKnicksHome ? game.awayTeam?.score : game.homeTeam?.score, 10) || 0;
+
+    // Determine win/loss
+    const isWin = knicksScore > opponentScore;
+    const resultClass = isWin ? 'win' : 'loss';
+    const resultText = isWin ? 'W' : 'L';
 
     // Format date
     const gameDate = new Date(game.gameDateEst || game.gameDateUTC);
-    const formattedDate = gameDate.toLocaleDateString();
+    const formattedDate = gameDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
 
     div.innerHTML = `
-        <div class="game-info">
-            <span class="opponent-name">${opponent?.teamName || opponent?.teamTricode || 'Unknown'}</span>
+        <div class="game-card-header">
+            <span class="game-result-badge ${resultClass}">${resultText}</span>
             <span class="game-date">${formattedDate}</span>
-            <span class="home-away">${isKnicksHome ? 'Home' : 'Away'}</span>
-            <span class="score">${knicksScore} - ${opponentScore}</span>
+            <span class="home-away-badge">${isKnicksHome ? 'Home' : 'Away'}</span>
+        </div>
+        <div class="game-card-body">
+            <div class="team-row knicks-row">
+                <span class="team-name">New York Knicks</span>
+                <span class="team-score">${knicksScore}</span>
+            </div>
+            <div class="team-row opponent-row">
+                <span class="team-name">${opponent?.teamName || opponent?.teamTricode || 'Unknown'}</span>
+                <span class="team-score">${opponentScore}</span>
+            </div>
         </div>
     `;
 
