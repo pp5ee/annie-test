@@ -92,6 +92,72 @@ body {
     margin-top: var(--spacing-md);
 }
 
+/* Loading & Messages */
+.loading,
+.message {
+    padding: var(--spacing-lg);
+    text-align: center;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+}
+
+.loading {
+    color: var(--knicks-blue);
+    background-color: var(--color-bg-light);
+}
+
+.message.info {
+    color: var(--color-text-secondary);
+    background-color: var(--color-bg-light);
+}
+
+.message.error {
+    color: #c0392b;
+    background-color: #fdf2f2;
+    border: 1px solid #e74c3c;
+}
+
+/* Game Card (basic for AC-2, enhanced in AC-3) */
+.game-card {
+    background-color: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+}
+
+.game-card .game-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.game-card .opponent-name {
+    font-weight: 600;
+    color: var(--color-text);
+    flex: 1 0 auto;
+}
+
+.game-card .game-date {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+.game-card .home-away {
+    background-color: var(--knicks-blue);
+    color: var(--color-white);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.game-card .score {
+    font-weight: 700;
+    color: var(--knicks-orange);
+    font-size: 1.125rem;
+}
+
 /* Footer */
 .site-footer {
     background-color: var(--color-bg-light);
