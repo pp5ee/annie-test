@@ -3,12 +3,13 @@
 
 const API_URL = 'https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json';
 const KNICKS_TEAM_ID = 1610612752; // NBA team ID for New York Knicks
-const REQUEST_TIMEOUT_MS = 8000; // 8 second timeout per request
+const REQUEST_TIMEOUT_MS = 3000; // AC-5: 3 second timeout to meet performance requirement
+const MAX_TOTAL_LOAD_TIME_MS = 3000; // AC-5: Maximum total load time budget
 
-// CORS proxy fallback list
+// CORS proxy fallback list - ordered by reliability/speed
 const CORS_PROXIES = [
-    'https://thingproxy.freeboard.io/fetch/',
     'https://api.allorigins.win/raw?url=',
+    'https://thingproxy.freeboard.io/fetch/',
     'https://corsproxy.io/?'
 ];
 
