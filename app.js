@@ -31,7 +31,14 @@ async function init() {
         const finalGames = filterFinalGames(games);
 
         if (finalGames.length === 0) {
-            showMessage(container, 'No completed games found.', 'info');
+            // AC-3: Show friendly empty state message in Chinese
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏀</div>
+                    <div class="empty-state-title">暂无数据</div>
+                    <div class="empty-state-message">当前没有已完成的比赛数据，请稍后再试</div>
+                </div>
+            `;
             return;
         }
 
