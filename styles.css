@@ -312,7 +312,7 @@ body {
         margin-top: var(--spacing-xs);
     }
 
-    .team-name {
+    .game-card .team-name {
         font-size: 0.9375rem;
         max-width: 70%;
         overflow: hidden;
