@@ -191,6 +191,50 @@ body {
     background-color: #005a9e;
 }
 
+/* Offline Indicator - AC-1 */
+.offline-indicator {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.offline-badge {
+    background-color: #ffc107;
+    color: #333;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.offline-message {
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+}
+
+.retry-link {
+    background: none;
+    border: none;
+    color: var(--knicks-blue);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    padding: 0;
+    margin-left: 4px;
+}
+
+.retry-link:hover {
+    color: #005a9e;
+}
+
 /* Game Card (AC-3: Enhanced with win/loss indicator and full game details) */
 .game-card {
     background-color: var(--color-white);

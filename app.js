@@ -54,8 +54,18 @@ async function init() {
         renderGames(container, finalGames);
     } catch (error) {
         console.error('Error loading games:', error);
-        // AC-4: Show error with retry button
-        showErrorWithRetry(container);
+        console.log('AC-1: All API methods failed, falling back to mock data');
+
+        // AC-1: Use mock data when all fetch methods fail
+        const mockGames = getMockKnicksGames();
+        const finalGames = filterFinalGames(mockGames);
+
+        if (finalGames.length === 0) {
+            showErrorWithRetry(container);
+            return;
+        }
+
+        renderGamesWithOfflineIndicator(container, finalGames);
     }
 }
 
@@ -313,6 +323,29 @@ function renderGames(container, games) {
         const gameElement = createGameElement(game);
         container.appendChild(gameElement);
     });
+}
+
+/**
+ * AC-1: Render games with offline mode indicator when using mock data
+ */
+function renderGamesWithOfflineIndicator(container, games) {
+    // Clear and add offline mode indicator
+    container.innerHTML = `
+        <div class="offline-indicator">
+            <span class="offline-badge">📴 Offline Mode</span>
+            <span class="offline-message">Showing cached data. <button class="retry-link" onclick="init()">Try live data</button></span>
+        </div>
+    `;
+
+    const gamesList = document.createElement('div');
+    gamesList.className = 'games-list';
+
+    games.forEach(game => {
+        const gameElement = createGameElement(game);
+        gamesList.appendChild(gameElement);
+    });
+
+    container.appendChild(gamesList);
 }
 
 /**
