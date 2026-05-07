@@ -327,25 +327,26 @@ function renderGames(container, games) {
 
 /**
  * AC-1: Render games with offline mode indicator when using mock data
+ * Fixed: Simplified to avoid nested container breaking grid layout
  */
 function renderGamesWithOfflineIndicator(container, games) {
-    // Clear and add offline mode indicator
-    container.innerHTML = `
-        <div class="offline-indicator">
-            <span class="offline-badge">📴 Offline Mode</span>
-            <span class="offline-message">Showing cached data. <button class="retry-link" onclick="init()">Try live data</button></span>
-        </div>
+    // Prepend offline mode indicator to container
+    const indicator = document.createElement('div');
+    indicator.className = 'offline-indicator';
+    indicator.innerHTML = `
+        <span class="offline-badge">📴 Offline Mode</span>
+        <span class="offline-message">Showing cached data. <button class="retry-link" onclick="init()">Try live data</button></span>
     `;
 
-    const gamesList = document.createElement('div');
-    gamesList.className = 'games-list';
+    // Clear container and add indicator first
+    container.innerHTML = '';
+    container.appendChild(indicator);
 
+    // Append game cards directly to container (maintains grid layout)
     games.forEach(game => {
         const gameElement = createGameElement(game);
-        gamesList.appendChild(gameElement);
+        container.appendChild(gameElement);
     });
-
-    container.appendChild(gamesList);
 }
 
 /**
