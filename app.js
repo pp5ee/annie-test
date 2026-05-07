@@ -54,7 +54,7 @@ async function init() {
         renderGames(container, finalGames);
     } catch (error) {
         console.error('Error loading games:', error);
-        console.log('AC-1: All API methods failed, falling back to mock data');
+        console.log('AC-3: All API methods failed, using mock data fallback');
 
         // AC-1: Use mock data when all fetch methods fail
         const mockGames = getMockKnicksGames();
@@ -76,7 +76,9 @@ async function init() {
 async function fetchGamesWithFallback() {
     // Try direct fetch first (may work in some browser contexts)
     try {
-        return await fetchGamesDirect();
+        const games = await fetchGamesDirect();
+        console.log('AC-3: Successfully fetched via direct API access');
+        return games;
     } catch (error) {
         console.log('Direct fetch failed, trying proxies...');
     }
