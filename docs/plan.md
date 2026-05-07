@@ -1,42 +1,87 @@
-I'll examine the current code to understand the error and create a plan to fix the NBA API connectivity issue.## Goal
-Fix the NBA API connection error by ensuring mock data fallback activates when all fetch methods fail, instead of displaying an error screen.
+I'll examine the current implementation to understand the data fetching logic and create a plan to fix the offline mode issue.Now I understand the issue. The NBA CDN API has CORS restrictions and the free CORS proxies are unreliable (403 errors, connection failures). Let me create a plan to fix this.
+
+## Goal
+Fix the persistent offline mode issue by replacing unreliable CORS proxies with a working data fetch strategy that doesn't depend on free third-party proxies.
 
 ## Context
-The Knicks Scores app attempts to fetch data from `cdn.nba.com` which returns `ERR_CONNECTION_CLOSED` due to CORS/network restrictions. The app has CORS proxy fallbacks and mock data, but the fallback logic is broken—when all fetch methods fail, it throws an error that triggers an error screen instead of using mock data.
+The current implementation tries to fetch NBA schedule data via:
+1. Direct fetch from `cdn.nba.com` - blocked by CORS
+2. Three free CORS proxies (allorigins.win, thingproxy.freeboard.io, corsproxy.io) - returning 403/forbidden errors
 
-**Current broken flow:**
-1. Direct fetch to NBA CDN → fails  
-2. CORS proxies tried sequentially → all fail  
-3. `fetchGamesWithFallback()` throws error  
-4. `init()` catches error → shows error screen with retry button  
-5. Mock data (`getMockKnicksGames()`) is never used
+The app falls back to hardcoded mock data, which always shows the same outdated games. User sees "📴 Offline Mode" on every page load.
+
+**Current files:**
+- `app.js` - Lines 9-14 define CORS proxies, lines 76-99 handle fallback logic
+- `index.html` - Main page structure
+- `styles.css` - Includes `.offline-indicator` styling
 
 ## Acceptance Criteria
-- **AC-1:** When NBA API and all CORS proxies fail, app automatically displays mock data instead of error screen
-- **AC-2:** Mock data displays within the 3-second total load time budget  
-- **AC-3:** Console logs indicate which fallback level was used (proxy vs mock)  
-- **AC-4:** Retry button still available to attempt fresh API fetch  
-- **AC-5:** Verify fix by checking that page loads games without `net::ERR_CONNECTION_CLOSED` error visible to users
+
+- **AC-1:** Replace free CORS proxies with a working data source strategy that successfully fetches live NBA data without 403 errors
+  - File: `app.js` lines 9-14 (replace proxy list)
+  - Verification: Page loads without "Offline Mode" banner; console shows successful fetch
+  - Target: `https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2024/league/00_full_schedule.json` (CORS-friendly NBA endpoint)
+
+- **AC-2:** Implement localStorage cache to persist successfully fetched data
+  - File: `app.js` - Add cache read before any fetch attempt, cache write after successful fetch
+  - Cache key: `knicks_games_cache`
+  - Cache TTL: 1 hour (3600000 ms)
+  - Verification: After successful load, refreshing page uses cached data immediately while fetching fresh data in background
+
+- **AC-3:** Update offline indicator to distinguish between "cached data" (fresh cache) vs "mock data" (all APIs failed)
+  - File: `app.js` lines 334-352 and `styles.css`
+  - Show "📴 Cached" (yellow) when using localStorage cache
+  - Show "📴 Offline Mode" (red) only when using mock fallback data
+  - Verification: Visual indicator changes based on data source
+
+- **AC-4:** Add cache timestamp display to offline indicator
+  - Show "Last updated: X minutes ago" when using cached data
+  - File: `app.js` in `renderGamesWithOfflineIndicator()` function
+  - Verification: Timestamp visible in offline banner
 
 ## Implementation Notes
-**Primary fix location:** `app.js` lines 35-59 in `init()` function
 
-**Required changes:**
-1. Modify error handling in `init()` to call `getMockKnicksGames()` when `fetchGamesWithFallback()` fails
-2. Ensure mock data path is treated as success case (renders games) not error case
-3. Consider adding a visual indicator (subtle badge/text) showing "offline mode" when mock data is used
-4. Keep retry button functional for users who want to attempt live data again
+**Data Source Strategy:**
+The NBA provides a CORS-friendly endpoint at `data.nba.com` that doesn't require proxies. Update `API_URL` to:
+```javascript
+const API_URL = 'https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2024/league/00_full_schedule.json';
+```
+This endpoint returns a different schema - games are in `lscd` array with `mscd` games list. Update `extractKnicksGames()` accordingly.
 
-**Verification approach:**
-- Load page with DevTools Network tab open
-- Confirm `scheduleLeagueV2.json` shows connection error in console (expected)
-- Verify page displays 5 mock Knicks games instead of error message
-- Confirm load time is under 3 seconds
+**Cache Implementation Pattern:**
+```javascript
+// Check cache first
+const cached = localStorage.getItem('knicks_games_cache');
+if (cached) {
+    const { timestamp, games } = JSON.parse(cached);
+    if (Date.now() - timestamp < CACHE_TTL) {
+        // Use cache immediately, fetch in background
+        renderGames(container, games);
+        fetchFreshDataInBackground();
+        return;
+    }
+}
+```
 
-**Risk:** Low—mock data already exists and is well-formed; change is to invocation path only
+**Schema Mapping:**
+The new NBA endpoint uses different field names:
+- `lscd[].mscd.g[]` instead of `leagueSchedule.gameDates[].games[]`
+- `gid` instead of `gameId`
+- `h.ta` (home team abbreviation) instead of `homeTeam.teamTricode`
+- Map: `h.tid` → home team ID, `v.tid` → away team ID
+
+**Verification Commands:**
+```bash
+# Test the new endpoint directly
+curl -I "https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2024/league/00_full_schedule.json"
+
+# Start local server and verify
+python3 -m http.server 8000
+# Open http://localhost:8000 and check console for successful fetch
+```
 
 ## Out of Scope
-- Adding new CORS proxies  
-- Modifying mock data content  
-- Changing styling of game cards  
-- Implementing actual offline/PWA caching
+- Server-side proxy implementation (staying static GitHub Pages compatible)
+- Real-time websocket updates
+- User-configurable data sources
+- Historical season data beyond 2024-2025

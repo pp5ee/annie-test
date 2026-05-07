@@ -1,17 +1,13 @@
 // Knicks Scores Application
-// AC-2: Fetch game data from NBA.com CDN API and filter completed games
+// AC-1: Fetch game data from NBA.com data endpoint (CORS-friendly)
 
-const API_URL = 'https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json';
+const API_URL = 'https://data.nba.com/data/10s/v2015/json/mobile_teams/nba/2024/league/00_full_schedule.json';
 const KNICKS_TEAM_ID = 1610612752; // NBA team ID for New York Knicks
-const REQUEST_TIMEOUT_MS = 3000; // AC-5: 3 second timeout to meet performance requirement
-const MAX_TOTAL_LOAD_TIME_MS = 3000; // AC-5: Maximum total load time budget
+const REQUEST_TIMEOUT_MS = 5000; // 5 second timeout for data.nba.com endpoint
+const MAX_TOTAL_LOAD_TIME_MS = 5000; // Maximum total load time budget
 
-// CORS proxy fallback list - ordered by reliability/speed
-const CORS_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://thingproxy.freeboard.io/fetch/',
-    'https://corsproxy.io/?'
-];
+// AC-1: Using CORS-friendly NBA data endpoint - no proxies needed
+const CORS_PROXIES = [];
 
 // Initialize app on page load
 document.addEventListener('DOMContentLoaded', init);
@@ -70,28 +66,17 @@ async function init() {
 }
 
 /**
- * Fetch games with multiple fallback strategies
- * AC-1: Handles CORS restrictions by trying multiple proxies, then mock data
+ * Fetch games with fallback strategies
+ * AC-1: Uses CORS-friendly data.nba.com endpoint directly
  */
 async function fetchGamesWithFallback() {
-    // Try direct fetch first (may work in some browser contexts)
+    // Try direct fetch from CORS-friendly endpoint
     try {
         const games = await fetchGamesDirect();
-        console.log('AC-3: Successfully fetched via direct API access');
+        console.log('AC-1: Successfully fetched via data.nba.com endpoint');
         return games;
     } catch (error) {
-        console.log('Direct fetch failed, trying proxies...');
-    }
-
-    // Try each CORS proxy in sequence
-    for (const proxy of CORS_PROXIES) {
-        try {
-            const games = await fetchGamesViaProxy(proxy);
-            console.log(`Successfully fetched via proxy: ${proxy}`);
-            return games;
-        } catch (error) {
-            console.log(`Proxy failed: ${proxy} - ${error.message}`);
-        }
+        console.log('Direct fetch failed:', error.message);
     }
 
     // All fetch methods failed - throw to trigger mock data fallback
@@ -167,18 +152,38 @@ async function fetchGamesViaProxy(proxyUrl) {
 
 /**
  * Extract Knicks games from NBA schedule data
+ * AC-1: Updated for data.nba.com schema (lscd/mscd format)
  */
 function extractKnicksGames(data) {
-    const gameDates = data.leagueSchedule?.gameDates || [];
+    const lscd = data.lscd || [];
     const allGames = [];
 
-    gameDates.forEach(gameDate => {
-        const games = gameDate.games || [];
+    lscd.forEach(monthData => {
+        const mscd = monthData.mscd || {};
+        const games = mscd.g || [];
         games.forEach(game => {
-            // Only include games involving the Knicks
-            if (game.homeTeam?.teamId == KNICKS_TEAM_ID ||
-                game.awayTeam?.teamId == KNICKS_TEAM_ID) {
-                allGames.push(game);
+            // Check if Knicks are involved (h.tid = home team ID, v.tid = visitor team ID)
+            if (game.h?.tid == KNICKS_TEAM_ID || game.v?.tid == KNICKS_TEAM_ID) {
+                // Map to consistent format used by the rest of the app
+                allGames.push({
+                    gameId: game.gid,
+                    gameDateEst: game.gdte, // game date EST
+                    gameDateUTC: game.gdte + 'T00:00:00Z',
+                    gameStatus: game.st === 3 ? 3 : (game.stt?.toLowerCase().includes('final') ? 3 : 1),
+                    gameStatusText: game.stt || (game.st === 3 ? 'Final' : 'Scheduled'),
+                    homeTeam: {
+                        teamId: game.h?.tid,
+                        teamName: game.h?.tn || game.h?.ta,
+                        teamTricode: game.h?.ta,
+                        score: game.h?.s || '0'
+                    },
+                    awayTeam: {
+                        teamId: game.v?.tid,
+                        teamName: game.v?.tn || game.v?.ta,
+                        teamTricode: game.v?.ta,
+                        score: game.v?.s || '0'
+                    }
+                });
             }
         });
     });
