@@ -28,7 +28,8 @@ async function init() {
         console.log('AC-2: Using cached data, fetching fresh data in background');
         const finalGames = filterFinalGames(cachedData.games);
         if (finalGames.length > 0) {
-            renderGames(container, finalGames);
+            // AC-3: Show cached indicator when using fresh cache
+            renderGamesWithCachedIndicator(container, finalGames, cachedData.timestamp);
         }
         // Fetch fresh data in background
         fetchFreshDataAndUpdateCache(container, cachedData.timestamp);
@@ -93,6 +94,27 @@ async function fetchFreshDataAndUpdateCache(container, cachedTimestamp) {
 
         renderGamesWithOfflineIndicator(container, finalGames);
     }
+}
+
+/**
+ * AC-3: Render games with cached data indicator (yellow badge)
+ * Shown when using fresh localStorage cache
+ */
+function renderGamesWithCachedIndicator(container, games, timestamp) {
+    const indicator = document.createElement('div');
+    indicator.className = 'cached-indicator';
+    indicator.innerHTML = `
+        <span class="cached-badge">📴 Cached</span>
+        <span class="cached-message">Using cached data. <button class="retry-link" onclick="init()">Refresh</button></span>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(indicator);
+
+    games.forEach(game => {
+        const gameElement = createGameElement(game);
+        container.appendChild(gameElement);
+    });
 }
 
 /**
@@ -408,23 +430,20 @@ function renderGames(container, games) {
 }
 
 /**
- * AC-1: Render games with offline mode indicator when using mock data
- * Fixed: Simplified to avoid nested container breaking grid layout
+ * AC-3: Render games with offline mode indicator when using mock data (red badge)
+ * Shown when all APIs fail and using mock fallback data
  */
 function renderGamesWithOfflineIndicator(container, games) {
-    // Prepend offline mode indicator to container
     const indicator = document.createElement('div');
     indicator.className = 'offline-indicator';
     indicator.innerHTML = `
         <span class="offline-badge">📴 Offline Mode</span>
-        <span class="offline-message">Showing cached data. <button class="retry-link" onclick="init()">Try live data</button></span>
+        <span class="offline-message">Using sample data. <button class="retry-link" onclick="init()">Try live data</button></span>
     `;
 
-    // Clear container and add indicator first
     container.innerHTML = '';
     container.appendChild(indicator);
 
-    // Append game cards directly to container (maintains grid layout)
     games.forEach(game => {
         const gameElement = createGameElement(game);
         container.appendChild(gameElement);
