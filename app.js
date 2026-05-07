@@ -9,8 +9,9 @@ const MAX_TOTAL_LOAD_TIME_MS = 5000; // Maximum total load time budget
 // AC-1: Using CORS-friendly NBA data endpoint - no proxies needed
 const CORS_PROXIES = [];
 
-// Initialize app on page load
-document.addEventListener('DOMContentLoaded', init);
+// AC-2: localStorage cache configuration
+const CACHE_KEY = 'knicks_games_cache';
+const CACHE_TTL_MS = 3600000; // 1 hour in milliseconds
 
 async function init() {
     console.log('Knicks Scores app initialized');
@@ -21,9 +22,29 @@ async function init() {
         return;
     }
 
-    showLoading(container);
+    // AC-2: Check cache first before showing loading state
+    const cachedData = getCachedGames();
+    if (cachedData) {
+        console.log('AC-2: Using cached data, fetching fresh data in background');
+        const finalGames = filterFinalGames(cachedData.games);
+        if (finalGames.length > 0) {
+            renderGames(container, finalGames);
+        }
+        // Fetch fresh data in background
+        fetchFreshDataAndUpdateCache(container, cachedData.timestamp);
+        return;
+    }
 
-    // AC-5: Enforce 3-second total load time budget using Promise.race
+    showLoading(container);
+    await fetchFreshDataAndUpdateCache(container, null);
+}
+
+/**
+ * AC-2: Fetch fresh data and update cache
+ * @param {HTMLElement} container - The games container element
+ * @param {number|null} cachedTimestamp - Timestamp of cached data if using cache
+ */
+async function fetchFreshDataAndUpdateCache(container, cachedTimestamp) {
     const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Load timeout')), MAX_TOTAL_LOAD_TIME_MS);
     });
@@ -33,10 +54,14 @@ async function init() {
             fetchGamesWithFallback(),
             timeoutPromise
         ]);
+
+        // AC-2: Save to cache on successful fetch
+        saveGamesToCache(games);
+        console.log('AC-2: Fresh data fetched and cached');
+
         const finalGames = filterFinalGames(games);
 
         if (finalGames.length === 0) {
-            // AC-3: Show friendly empty state message in Chinese
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-state-icon">🏀</div>
@@ -50,9 +75,14 @@ async function init() {
         renderGames(container, finalGames);
     } catch (error) {
         console.error('Error loading games:', error);
-        console.log('AC-3: All API methods failed, using mock data fallback');
 
-        // AC-1: Use mock data when all fetch methods fail
+        // If we already showed cached data, don't show error
+        if (cachedTimestamp) {
+            console.log('AC-2: Background fetch failed, cached data already displayed');
+            return;
+        }
+
+        console.log('AC-3: All API methods failed, using mock data fallback');
         const mockGames = getMockKnicksGames();
         const finalGames = filterFinalGames(mockGames);
 
@@ -64,6 +94,51 @@ async function init() {
         renderGamesWithOfflineIndicator(container, finalGames);
     }
 }
+
+/**
+ * AC-2: Get cached games from localStorage if not expired
+ * @returns {Object|null} Cached games with timestamp, or null if expired/missing
+ */
+function getCachedGames() {
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (!cached) return null;
+
+        const { timestamp, games } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+
+        if (age < CACHE_TTL_MS) {
+            console.log(`AC-2: Cache hit, age: ${Math.round(age / 1000)}s`);
+            return { timestamp, games };
+        } else {
+            console.log(`AC-2: Cache expired, age: ${Math.round(age / 1000)}s`);
+            return null;
+        }
+    } catch (error) {
+        console.log('AC-2: Error reading cache:', error.message);
+        return null;
+    }
+}
+
+/**
+ * AC-2: Save games to localStorage cache
+ * @param {Array} games - Array of game objects to cache
+ */
+function saveGamesToCache(games) {
+    try {
+        const cacheData = {
+            timestamp: Date.now(),
+            games: games
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+        console.log('AC-2: Games saved to cache');
+    } catch (error) {
+        console.log('AC-2: Error saving cache:', error.message);
+    }
+}
+
+// Initialize app on page load
+document.addEventListener('DOMContentLoaded', init);
 
 /**
  * Fetch games with fallback strategies
