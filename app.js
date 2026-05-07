@@ -97,7 +97,33 @@ async function fetchFreshDataAndUpdateCache(container, cachedTimestamp) {
 }
 
 /**
- * AC-3: Render games with cached data indicator (yellow badge)
+ * AC-4: Format timestamp as relative time (e.g., "5 minutes ago")
+ * @param {number} timestamp - Unix timestamp in milliseconds
+ * @returns {string} Human-readable relative time
+ */
+function formatTimeAgo(timestamp) {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+
+    if (seconds < 60) {
+        return 'Just now';
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+        return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    }
+
+    const days = Math.floor(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+}
+
+/**
+ * AC-3/AC-4: Render games with cached data indicator (yellow badge)
  * Shown when using fresh localStorage cache
  */
 function renderGamesWithCachedIndicator(container, games, timestamp) {
@@ -105,7 +131,7 @@ function renderGamesWithCachedIndicator(container, games, timestamp) {
     indicator.className = 'cached-indicator';
     indicator.innerHTML = `
         <span class="cached-badge">📴 Cached</span>
-        <span class="cached-message">Using cached data. <button class="retry-link" onclick="init()">Refresh</button></span>
+        <span class="cached-message">Last updated: ${formatTimeAgo(timestamp)} <button class="retry-link" onclick="init()">Refresh</button></span>
     `;
 
     container.innerHTML = '';
